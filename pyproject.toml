@@ -1,0 +1,25 @@
+[project]
+name = "causedms"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Jingyou Rao",email = "roseraosh@gmail.com"},
+    {name = "Mingsen Wang",email = "mingsen.wang.sh@gmail.com"},
+]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Coyote-Maestas-Lab/causedms"
+packages = [{include = "causedms", from = "src"}]  
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = "^2.1"
+pandas = "^2.2"
+xarray = "^2024.09"
+scipy = "^1.14"
+scikit-learn = "^1.4"
+arviz = "^0.20"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
