@@ -19,6 +19,19 @@ xarray = "^2024.09"
 scipy = "^1.14"
 scikit-learn = "^1.4"
 arviz = "^0.20"
+matplotlib = ">=3.9"
+seaborn = ">=0.13"
+adjustText = "*"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = ">=6.29"
+ipywidgets = ">=8.1"
+pickleshare = ">=0.7"
+black = ">=22"
+isort = ">=5"
+pylint = ">=2"
+pytest = ">=8"
+line_profiler = ">=4.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
