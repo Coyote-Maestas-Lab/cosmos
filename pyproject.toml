@@ -3,13 +3,13 @@ name = "causedms"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Jingyou Rao",email = "roseraosh@gmail.com"},
-    {name = "Mingsen Wang",email = "mingsen.wang.sh@gmail.com"},
+    { name = "Jingyou Rao", email = "roseraosh@gmail.com" },
+    { name = "Mingsen Wang", email = "mingsen.wang.sh@gmail.com" },
 ]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/Coyote-Maestas-Lab/causedms"
-packages = [{include = "causedms", from = "src"}]  
+packages = [{ include = "causedms", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
