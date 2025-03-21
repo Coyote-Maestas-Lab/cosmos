@@ -7,7 +7,7 @@ from typing import Iterable, Optional
 import numpy as np
 import pandas as pd
 
-from .plot import plot_histogram, plot_histogram_with_gmm, plot_scatterplot
+from .plot import plot_histogram, plot_scatterplot
 
 
 class DMSData:
@@ -112,9 +112,6 @@ class DMSData:
 
     def plot_histogram(self, pheno: int, ax=None):
         return plot_histogram(self, pheno, ax=ax)
-
-    def plot_histogram_with_gmm(self, component: int = 2, ax=None):
-        return plot_histogram_with_gmm(self, component=component, ax=ax)
 
     def plot_scatterplot(self, type_col_dict: dict = None, ax=None):
         return plot_scatterplot(self, type_col_dict=type_col_dict, ax=ax)
