@@ -11,21 +11,19 @@ if TYPE_CHECKING:
     from .prior_factory import PriorFactory
 
 
-def plot_histogram_with_gmm(prior_factory: PriorFactory, component: int = 2, ax=None):
+def plot_histogram_with_gmm(prior: PriorFactory, component: int = 2, ax=None):
 
-    if prior_factory.prior is None:
+    if prior.prior is None:
         raise ValueError("Must generate prior first.")
-    mu_m = prior_factory.prior["mu_m"]
-    sigma2_m = prior_factory.prior["sigma2_m"]
+    mu_m = prior.prior["mu_m"]
+    sigma2_m = prior.prior["sigma2_m"]
 
     # use snsplot the histgoram with gmm estiamtes
     if ax is None:
         _, ax = plt.subplots(figsize=(6, 4))
     # group by mutation type
-    _ = sns.histplot(
-        prior_factory.data.data, x="beta_hat_1", bins=30, kde=True, hue="type", ax=ax
-    )
-    _ = ax.set_title(f"Histogram of {prior_factory.data.phenotypes[0]} beta_hat")
+    _ = sns.histplot(prior.data, x="beta_hat_1", bins=30, kde=True, hue="type", ax=ax)
+    _ = ax.set_title(f"Histogram of {prior.phenotypes[0]} beta_hat")
     # add gmm estimates as vertical lines
     for i in range(component):
         mu_i = mu_m[i]
