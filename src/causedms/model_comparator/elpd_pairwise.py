@@ -1,6 +1,6 @@
 """
-ElpdPairwise compares the fit of models using expected log pointwise posterior density (ELPD). 
-See Vehtari, Gelman, and Gabry (2017) for more details. 
+ElpdPairwise compares the fit of models using expected log pointwise posterior density (ELPD).
+See Vehtari, Gelman, and Gabry (2017) for more details.
 """
 
 from typing import Callable, Iterable, Optional

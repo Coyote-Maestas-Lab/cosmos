@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .prior_factory import PriorFactory
 
 
-def plot_histogram_with_gmm(prior: PriorFactory, component: int = 2, ax=None):
+def _plot_histogram_with_gmm(prior: "PriorFactory", component: int = 2, ax=None):
 
     if prior.prior is None:
         raise ValueError("Must generate prior first.")

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .dms_data import DMSData
 
 
-def plot_histogram(data: DMSData, pheno: int, ax=None):
+def _plot_histogram(data: "DMSData", pheno: int, ax=None):
 
     if ax is None:
         _, ax = plt.subplots(figsize=(6, 4))
@@ -26,7 +26,7 @@ def plot_histogram(data: DMSData, pheno: int, ax=None):
     return ax
 
 
-def plot_scatterplot(data: DMSData, type_col_dict: dict = None, ax=None):
+def _plot_scatterplot(data: "DMSData", type_col_dict: dict = None, ax=None):
     """
     Plot scatterplot of beta_hat_1 vs beta_hat_2.
     """

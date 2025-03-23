@@ -1,5 +1,5 @@
 """
-Adaptive grid approximation for Bayesian posterior approximation, 
+Adaptive grid approximation for Bayesian posterior approximation,
   with adaptive boundary extension and hypercube refinement.
 """
 
@@ -11,6 +11,7 @@ import numpy as np
 from scipy.special import logsumexp
 
 from . import GRID_TOL, GridMargin, logger
+from .margin_summary import MarginSummary
 
 type HypercubeKey = Iterable[tuple[float, float]]
 
@@ -230,8 +231,10 @@ class Grid:  # pylint: disable=too-many-instance-attributes
         return {axis.name: axis.log_post_val for axis in self.axes}
 
     def marginal_posterior_summary(
-        self, reevaluate: bool = False, quantiles: Iterable[float] = (0.25, 0.5, 0.75)
-    ):
+        self,
+        quantiles: Iterable[float],
+        reevaluate: bool = False,
+    ) -> dict[str, MarginSummary]:
         """
         Summarize the marginal posterior for each axis.
         """
@@ -246,12 +249,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
                 )
             except ValueError as e:
                 if "Log posterior is -inf everywhere." in str(e):
-                    res[axis.name] = {
-                        "mean": np.nan,
-                        "std": np.nan,
-                        "quantiles": [np.nan] * len(quantiles),
-                        "map": np.nan,
-                    }
+                    res[axis.name] = MarginSummary.null(len(quantiles))
                 else:
                     raise e
         return res
@@ -259,7 +257,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
     @staticmethod
     def _get_axis_marginal_posterior_summary(
         axis: GridMargin, quantiles: Iterable[float]
-    ):
+    ) -> MarginSummary:
         """
         Summarize the marginal posterior for a single axis.
         Weighted mean, standard deviation, and quantiles.
@@ -268,29 +266,31 @@ class Grid:  # pylint: disable=too-many-instance-attributes
             raise ValueError("Marginal posterior not calculated.")
 
         try:
-            weighted_mean = np.average(axis.mid, weights=np.exp(axis.log_post_val))
+            weighted_mean: float = np.average(
+                axis.mid, weights=np.exp(axis.log_post_val)
+            )
         except ZeroDivisionError as e:
             raise ValueError("Log posterior is -inf everywhere.") from e
 
-        weighted_std = np.sqrt(
+        weighted_std: float = np.sqrt(
             np.average(
                 (axis.mid - weighted_mean) ** 2, weights=np.exp(axis.log_post_val)
             )
         )
 
-        weighted_quantiles = weighted_quantile(
+        weighted_quantiles: list[float] = weighted_quantile(
             axis.begin, axis.end, np.exp(axis.log_post_val), quantiles
         )
 
         max_post_idx = np.argmax(axis.log_post_val)
-        max_post = axis.mid[max_post_idx]
+        max_post: float = axis.mid[max_post_idx]
 
-        return {
-            "mean": weighted_mean,
-            "std": weighted_std,
-            "quantiles": weighted_quantiles,
-            "map": max_post,
-        }
+        return MarginSummary(
+            mean=weighted_mean,
+            std=weighted_std,
+            quantiles=weighted_quantiles,
+            max_post=max_post,
+        )
 
     def adapt_boundaries(
         self,
@@ -482,15 +482,16 @@ def weighted_quantile(
     end: Iterable[float],
     weights: Iterable[float],
     quantile: float | Iterable[float],
-) -> float:
+) -> list[float]:
     """
     Calculate the weighted median of a list of intervals.
     Quantiles will be sorted automatically.
     """
     if isinstance(quantile, float):
         quantile = [quantile]
+    elif not quantile:
+        return []
     else:
-        assert len(quantile) > 0, "Quantiles must be non-empty."
         quantile = sorted(quantile, reverse=True)
 
     if (quantile[-1] < 0) or (quantile[0] > 1):

@@ -76,7 +76,6 @@ def integrated_params_prior(
     )
     sigma2_k_hat = gmm_params_M["sigma2_k_hat"]
 
-    
     # Adjust by square of geometric mean of se_hat_1
     if x_se_name not in df.columns:
         sigma2_k_hat_adjust = np.zeros_like(sigma2_k_hat)

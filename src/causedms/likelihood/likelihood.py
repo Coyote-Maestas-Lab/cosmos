@@ -1,5 +1,5 @@
 """
-Log likelihood function for the model, 
+Log likelihood function for the model.
 """
 
 import numpy as np

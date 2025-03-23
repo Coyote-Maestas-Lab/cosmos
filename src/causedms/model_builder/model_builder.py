@@ -14,8 +14,8 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.linear_model import LinearRegression
 
-from causedms.adapt_grid.grid import Grid, GridMargin
-from causedms.adapt_grid.model_comparator.elpd_pairwise import ElpdPairwise
+from causedms.adapt_grid.grid import Grid, GridMargin, MarginSummary
+from causedms.model_comparator.elpd_pairwise import ElpdPairwise
 from causedms.likelihood.double import ModelFull, ModelSkeleton
 from causedms.prior_factory import PriorFactory
 
@@ -190,7 +190,8 @@ class ModelBuilder:
         c_gamma_hat: float,
         c_tau_hat: float,
         n: int = 1000,
-    ) -> tuple[Optional[np.ndarray], Optional[dict]]:
+        quantiles: Iterable[float] = (),
+    ) -> tuple[Optional[np.ndarray], Optional[dict[str, MarginSummary]]]:
         """
         Generate samples for a given model and given parameters
         """
@@ -221,8 +222,11 @@ class ModelBuilder:
         grid = Grid(axes_lst, log_lik_all)
         grid.adapt_boundaries(ADAPT_BOUNDARY_THRES)
         grid.adapt_split(ADAPT_SPLIT_THRES, 2)  # Bisect
-        summary = grid.marginal_posterior_summary()
-        if any(np.isnan(param["mean"]) for param in summary.values()):
+
+        summary: dict[str, MarginSummary] = grid.marginal_posterior_summary(
+            quantiles=quantiles
+        )
+        if any(np.isnan(param.mean) for param in summary.values()):
             # Model failed - posterior is 0 everywhere
             return np.full((n, len(param_names)), np.nan), summary
         return grid.sample(n), summary
@@ -233,9 +237,8 @@ class ModelBuilder:
         model_full: ModelFull,
         model_skeleton: Optional[ModelSkeleton],
         no_s_hat: bool = True,
-    ) -> tuple[
-        Optional[dict[str, Optional[dict]]], Optional[dict[str, Optional[np.ndarray]]]
-    ]:
+        quantiles: Iterable[float] = (0.25, 0.5, 0.75),
+    ) -> tuple[dict[str, dict[str, MarginSummary]], dict[str, np.ndarray]]:
         """
         Generate samples of all six/four models for one specific group.
         """
@@ -246,45 +249,48 @@ class ModelBuilder:
         samples_6, summary_6 = ModelBuilder._generate_model_sample_impl(
             ["gamma", "tau"],
             gen_model_log_likelihood(has_gamma=True, has_tau=True, model=model_full),
-            boundary_gamma,
-            boundary_tau,
-            c_gamma_hat,
-            c_tau_hat,
-            N_SAMPLES,
+            boundary_gamma=boundary_gamma,
+            boundary_tau=boundary_tau,
+            c_gamma_hat=c_gamma_hat,
+            c_tau_hat=c_tau_hat,
+            n=N_SAMPLES,
+            quantiles=quantiles,
         )
 
         samples_5, summary_5 = ModelBuilder._generate_model_sample_impl(
             ["gamma"],
             gen_model_log_likelihood(has_gamma=True, has_tau=False, model=model_full),
-            boundary_gamma,
-            boundary_tau,
-            c_gamma_hat,
-            c_tau_hat,
-            N_SAMPLES,
+            boundary_gamma=boundary_gamma,
+            boundary_tau=boundary_tau,
+            c_gamma_hat=c_gamma_hat,
+            c_tau_hat=c_tau_hat,
+            n=N_SAMPLES,
+            quantiles=quantiles,
         )
         samples_5 = np.concatenate([samples_5, np.zeros_like(samples_5)], axis=1)
 
         samples_4, summary_4 = ModelBuilder._generate_model_sample_impl(
             ["tau"],
             gen_model_log_likelihood(has_gamma=False, has_tau=True, model=model_full),
-            boundary_gamma,
-            boundary_tau,
-            c_gamma_hat,
-            c_tau_hat,
-            N_SAMPLES,
+            boundary_gamma=boundary_gamma,
+            boundary_tau=boundary_tau,
+            c_gamma_hat=c_gamma_hat,
+            c_tau_hat=c_tau_hat,
+            n=N_SAMPLES,
+            quantiles=quantiles,
         )
         samples_4 = np.concatenate([np.zeros_like(samples_4), samples_4], axis=1)
 
         samples_3 = np.zeros_like(samples_6)
         summary_3 = {}
 
-        dict_summary = {
+        dict_summary: dict[str, dict[str, MarginSummary]] = {
             "model_6": summary_6,
             "model_5": summary_5,
             "model_4": summary_4,
             "model_3": summary_3,
         }
-        dict_samples = {
+        dict_samples: dict[str, np.ndarray] = {
             "model_6": samples_6,
             "model_5": samples_5,
             "model_4": samples_4,
@@ -299,11 +305,12 @@ class ModelBuilder:
             gen_model_log_likelihood(
                 has_gamma=False, has_tau=True, model=model_skeleton
             ),
-            boundary_gamma,
-            boundary_tau,
-            c_gamma_hat,
-            c_tau_hat,
-            N_SAMPLES,
+            boundary_gamma=boundary_gamma,
+            boundary_tau=boundary_tau,
+            c_gamma_hat=c_gamma_hat,
+            c_tau_hat=c_tau_hat,
+            n=N_SAMPLES,
+            quantiles=quantiles,
         )
         if any(np.isnan(param["mean"]) for param in summary_2.values()):
             # Model failed - posterior is 0 everywhere
@@ -357,9 +364,9 @@ class ModelBuilder:
     def save_sample_selected_model(
         group_new_idx: int,
         model_idx: int,
-        dict_samples: dict[str, Optional[np.ndarray]],
+        dict_samples: dict[str, np.ndarray],
         data_path: str,
-    ) -> None:
+    ) -> np.ndarray:
         """
         Save samples for the selected model.
         """
@@ -466,7 +473,7 @@ class ModelBuilder:
         ref_index: int,
         model_full_ref: ModelFull,
         model_skeleton_ref: ModelSkeleton,
-        combined_data_comparison: dict,
+        combined_data_comparison: dict[int, pd.DataFrame],
         data_path: str,
     ) -> None:
 
@@ -479,7 +486,9 @@ class ModelBuilder:
             return model_skeleton_ref.log_lik_individual(gamma, tau)
 
         comparator = ElpdPairwise(log_lik_full_ref)
-        best_models = {k: v.index[0] for k, v in combined_data_comparison.items()}
+        best_models: dict[int, str] = {
+            k: v.index[0] for k, v in combined_data_comparison.items()
+        }  # group index -> best model name
         for group_new_idx, top_model_name in best_models.items():
             group_new_name = f"group_new_{group_new_idx}"
             top_model_index = int(top_model_name.split("_")[-1])
@@ -493,7 +502,7 @@ class ModelBuilder:
             )
             if os.path.exists(sample_path):
                 with open(sample_path, "rb") as _handle:
-                    _posterior_sample = pickle.load(_handle)
+                    _posterior_sample: np.ndarray = pickle.load(_handle)
             else:
                 raise FileNotFoundError(
                     f"Posterior sample for group new {group_new_name} "
@@ -553,12 +562,17 @@ class ModelBuilder:
     ############################ Summary CausalDMS ############################
 
     @staticmethod
-    def summary_causal_dms(data_path: str) -> tuple[dict, dict[pd.DataFrame]]:
+    def summary_causal_dms(
+        data_path: str,
+    ) -> tuple[
+        dict[int, dict[str, dict[str, MarginSummary]]],
+        dict[int, pd.DataFrame],
+    ]:
         """
         Summary the pkl results of causalDMS across position groups.
         """
-        combined_data_summary = {}
-        combined_data_comparison = {}
+        combined_data_summary: dict[int, dict[str, dict[str, MarginSummary]]] = {}
+        combined_data_comparison: dict[int, pd.DataFrame] = {}
 
         # list all compairson files in data_path
         for pkl_file in os.listdir(data_path):

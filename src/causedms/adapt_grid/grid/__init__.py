@@ -1,5 +1,5 @@
 """
-Adaptive grid approximation for Bayesian posterior approximation, 
+Adaptive grid approximation for Bayesian posterior approximation,
   with adaptive boundary extension and hypercube refinement.
 """
 
@@ -12,3 +12,6 @@ logger = logging.getLogger(__name__)
 
 from .grid_margin import GridMargin  # isort:skip
 from .grid import Grid  # isort:skip
+from .margin_summary import MarginSummary  # isort:skip
+
+__all__ = ["Grid", "GridMargin", "MarginSummary"]

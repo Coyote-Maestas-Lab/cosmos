@@ -5,7 +5,7 @@ Implements prior generation for the causalDMS model
 from causedms.dms_data import DMSData
 
 from .prior_generator import generate_prior
-from .plot import plot_histogram_with_gmm
+from .plot import _plot_histogram_with_gmm
 
 
 class PriorFactory:
@@ -31,10 +31,10 @@ class PriorFactory:
     @property
     def data(self):
         return self._data.data
-    
+
     @property
     def phenotypes(self):
         return self._data.phenotypes
 
     def plot_histogram_with_gmm(self, component: int = 2, ax=None):
-        return plot_histogram_with_gmm(self, component, ax)
+        return _plot_histogram_with_gmm(self, component, ax)

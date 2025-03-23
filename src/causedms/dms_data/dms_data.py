@@ -7,7 +7,7 @@ from typing import Iterable, Optional
 import numpy as np
 import pandas as pd
 
-from .plot import plot_histogram, plot_scatterplot
+from .plot import _plot_histogram, _plot_scatterplot
 
 
 class DMSData:
@@ -110,8 +110,10 @@ class DMSData:
         df_res = pd.concat([df_include_all, df_exclude_all], axis=0)
         df_res["group_new"] = df_res["group_new"].astype("int").astype("category")
 
+        return df_res
+
     def plot_histogram(self, pheno: int, ax=None):
-        return plot_histogram(self, pheno, ax=ax)
+        return _plot_histogram(self, pheno, ax=ax)
 
     def plot_scatterplot(self, type_col_dict: dict = None, ax=None):
-        return plot_scatterplot(self, type_col_dict=type_col_dict, ax=ax)
+        return _plot_scatterplot(self, type_col_dict=type_col_dict, ax=ax)
