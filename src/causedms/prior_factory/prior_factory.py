@@ -10,10 +10,9 @@ from .plot import plot_histogram_with_gmm
 
 class PriorFactory:
     def __init__(self, data: DMSData):
-        self.data = data
+        self._data = data
 
-    @property
-    def prior(self, *args, regenerate: bool = False, **kwargs):
+    def gen_prior(self, *args, regenerate: bool = False, **kwargs):
         """
         x_name: str = "beta_hat_1",
         y_name: str = "beta_hat_2",
@@ -24,6 +23,18 @@ class PriorFactory:
             self._prior = generate_prior(*args, **kwargs)
 
         return self._prior
+
+    @property
+    def prior(self):
+        return self._prior
+
+    @property
+    def data(self):
+        return self._data.data
+    
+    @property
+    def phenotypes(self):
+        return self._data.phenotypes
 
     def plot_histogram_with_gmm(self, component: int = 2, ax=None):
         return plot_histogram_with_gmm(self, component, ax)
