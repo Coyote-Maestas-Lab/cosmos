@@ -1,26 +1,10 @@
-import math
-import os
-import pickle
 import logging
-import numpy as np
+import os
+
 import pandas as pd
-from typing import Optional
 
-# import matplotlib.pyplot as plt
-# from matplotlib.colors import ListedColormap
-# from matplotlib.patches import Circle
-# import matplotlib.colors as mcolors
-# import seaborn as sns
-# from adjustText import adjust_text
-
-from causedms.model_builder import ModelBuilder
 from causedms.adapt_grid.grid import MarginSummary
-
-# plt.rc("font", family="Helvetica")
-# sns.set_theme(style="white", font_scale=1.2)
-
-
-COLORS = ["#d3d3d3", "#a9a9a9", "#808080", "#ff9999", "#66b3ff", "#99ff99"]
+from causedms.model_builder import ModelBuilder
 
 
 class ModelAnalyzer:

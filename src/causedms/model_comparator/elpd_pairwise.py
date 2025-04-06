@@ -3,13 +3,13 @@ ElpdPairwise compares the fit of models using expected log pointwise posterior d
 See Vehtari, Gelman, and Gabry (2017) for more details.
 """
 
-from typing import Callable, Iterable, Optional
 import warnings
+from typing import Callable, Iterable, Optional
 
+import arviz as az
 import numpy as np
 import pandas as pd
 import xarray as xr
-import arviz as az
 
 from . import logger
 

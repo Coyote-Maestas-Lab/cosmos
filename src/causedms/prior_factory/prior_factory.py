@@ -4,8 +4,8 @@ Implements prior generation for the causalDMS model
 
 from causedms.dms_data import DMSData
 
-from .prior_generator import generate_prior
 from .plot import _plot_histogram_with_gmm
+from .prior_generator import generate_prior
 
 
 class PriorFactory:

@@ -2,12 +2,11 @@
 Generate samples and summary for all models
 """
 
-import os
 import logging
+import os
 import pickle
 from functools import partial
 from typing import Callable, Iterable, Optional
-import warnings
 
 import arviz as az
 import numpy as np
@@ -16,8 +15,8 @@ from scipy.stats import norm
 from sklearn.linear_model import LinearRegression
 
 from causedms.adapt_grid.grid import Grid, GridMargin, MarginSummary
-from causedms.model_comparator.elpd_pairwise import ElpdPairwise
 from causedms.likelihood.double import ModelFull, ModelSkeleton
+from causedms.model_comparator.elpd_pairwise import ElpdPairwise
 from causedms.prior_factory import PriorFactory
 
 from .model_loglik import gen_model_log_likelihood

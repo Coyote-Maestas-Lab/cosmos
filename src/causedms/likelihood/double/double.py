@@ -2,8 +2,8 @@
 Log likelihood functions for double-phenotype models.
 """
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.stats import multivariate_normal
