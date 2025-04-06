@@ -4,12 +4,20 @@ See Vehtari, Gelman, and Gabry (2017) for more details.
 """
 
 from typing import Callable, Iterable, Optional
+import warnings
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 import arviz as az
 
 from . import logger
+
+PARETO_WARNING_FILTER = {
+    "action": "ignore",
+    "message": "Estimated shape parameter of Pareto distribution is greater than 0.67.*",
+    "category": UserWarning,
+}
 
 
 class ElpdPairwise:
@@ -113,8 +121,11 @@ class ElpdPairwise:
             self.az_datasets[model_name] = az_ds
 
     def compare_elpd(
-        self, model_names: Optional[Iterable[str]] = None, reevaluate: bool = False
-    ):
+        self,
+        model_names: Optional[Iterable[str]] = None,
+        reevaluate: bool = False,
+        suppress_pareto_warning: bool = False,
+    ) -> pd.DataFrame:
         """
         Compare the models using ELPD.
         """
@@ -123,11 +134,34 @@ class ElpdPairwise:
 
         if model_names is None:
             self.evaluate_log_lik(model_names, reevaluate)
-            return az.compare(self.az_datasets, ic="loo")
+            return _az_compare(
+                self.az_datasets,
+                ic="loo",
+                suppress_pareto_warning=suppress_pareto_warning,
+            )
 
         for model_name in model_names:
             self.evaluate_log_lik(model_name, reevaluate)
 
-        return az.compare(
-            {k: v for k, v in self.az_datasets.items() if k in model_names}, ic="loo"
+        return _az_compare(
+            {k: v for k, v in self.az_datasets.items() if k in model_names},
+            ic="loo",
+            suppress_pareto_warning=suppress_pareto_warning,
         )
+
+
+def _az_compare(
+    compare_dict: dict[str, az.InferenceData],
+    ic: str = "loo",
+    suppress_pareto_warning: bool = False,
+) -> pd.DataFrame:
+    """
+    A thin wrapper around arviz.compare to handle the Pareto warning.
+    """
+
+    if not suppress_pareto_warning:
+        return az.compare(compare_dict, ic=ic)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(**PARETO_WARNING_FILTER)
+        return az.compare(compare_dict, ic=ic)
