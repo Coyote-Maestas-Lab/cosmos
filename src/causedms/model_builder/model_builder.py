@@ -2,8 +2,8 @@
 Generate samples and summary for all models
 """
 
-import os
 import logging
+import os
 import pickle
 from functools import partial
 from typing import Callable, Iterable, Optional
@@ -15,16 +15,16 @@ from scipy.stats import norm
 from sklearn.linear_model import LinearRegression
 
 from causedms.adapt_grid.grid import Grid, GridMargin, MarginSummary
-from causedms.model_comparator.elpd_pairwise import ElpdPairwise
 from causedms.likelihood.double import ModelFull, ModelSkeleton
+from causedms.model_comparator.elpd_pairwise import ElpdPairwise
 from causedms.prior_factory import PriorFactory
 
 from .model_loglik import gen_model_log_likelihood
 
-HALF_INTERVAL = 3
-ADAPT_BOUNDARY_THRES = -5
-ADAPT_SPLIT_THRES = -7
-N_SAMPLES = 1000
+HALF_INTERVAL = 3  # Half of the initial interval length of the grid
+ADAPT_BOUNDARY_THRES = -5  # See Grid.adapt_boundaries
+ADAPT_SPLIT_THRES = -7  # See Grid.adapt_split
+N_SAMPLES = 1000  # Default number of samples to generate
 
 
 class ModelBuilder:
@@ -61,6 +61,7 @@ class ModelBuilder:
         group_new_idx: int,
         no_s_hat: bool = True,
         ref_indices: Optional[int] = None,
+        suppress_pareto_warning: bool = True,
     ) -> None:
         """
         Run CausalDMS for one specific group.
@@ -76,7 +77,7 @@ class ModelBuilder:
 
         # model comparison
         compare_res = self.compare_models(
-            dict_samples, model_full, model_skeleton, no_s_hat
+            dict_samples, model_full, model_skeleton, no_s_hat, suppress_pareto_warning
         )
 
         # save summary and comparison
@@ -185,8 +186,8 @@ class ModelBuilder:
     def _generate_model_sample_impl(
         param_names: Iterable[str],
         log_lik_all: Callable,
-        boundary_gamma: float,
-        boundary_tau: float,
+        center_gamma: float,
+        center_tau: float,
         c_gamma_hat: float,
         c_tau_hat: float,
         n: int = 1000,
@@ -200,16 +201,18 @@ class ModelBuilder:
             return partial(norm.pdf, loc=mu, scale=sigma)
 
         axes_lst = []
-        for name, variance, boundary in zip(
+        for name, variance, center in zip(
             ["gamma", "tau"],
             [c_gamma_hat, c_tau_hat],
-            [boundary_gamma, boundary_tau],
+            [center_gamma, center_tau],
         ):
             if name in param_names:
+                # Initial grid: center +- HALF_INTERVAL
+                # with a resolution of 20 * HALF_INTERVAL
                 axes_lst.append(
                     GridMargin(
-                        -HALF_INTERVAL + boundary,
-                        HALF_INTERVAL + boundary,
+                        -HALF_INTERVAL + center,
+                        HALF_INTERVAL + center,
                         int(20 * HALF_INTERVAL),
                         gaussian_pdf(0, variance),
                         name=name,
@@ -249,8 +252,8 @@ class ModelBuilder:
         samples_6, summary_6 = ModelBuilder._generate_model_sample_impl(
             ["gamma", "tau"],
             gen_model_log_likelihood(has_gamma=True, has_tau=True, model=model_full),
-            boundary_gamma=boundary_gamma,
-            boundary_tau=boundary_tau,
+            center_gamma=boundary_gamma,
+            center_tau=boundary_tau,
             c_gamma_hat=c_gamma_hat,
             c_tau_hat=c_tau_hat,
             n=N_SAMPLES,
@@ -260,8 +263,8 @@ class ModelBuilder:
         samples_5, summary_5 = ModelBuilder._generate_model_sample_impl(
             ["gamma"],
             gen_model_log_likelihood(has_gamma=True, has_tau=False, model=model_full),
-            boundary_gamma=boundary_gamma,
-            boundary_tau=boundary_tau,
+            center_gamma=boundary_gamma,
+            center_tau=boundary_tau,
             c_gamma_hat=c_gamma_hat,
             c_tau_hat=c_tau_hat,
             n=N_SAMPLES,
@@ -272,8 +275,8 @@ class ModelBuilder:
         samples_4, summary_4 = ModelBuilder._generate_model_sample_impl(
             ["tau"],
             gen_model_log_likelihood(has_gamma=False, has_tau=True, model=model_full),
-            boundary_gamma=boundary_gamma,
-            boundary_tau=boundary_tau,
+            center_gamma=boundary_gamma,
+            center_tau=boundary_tau,
             c_gamma_hat=c_gamma_hat,
             c_tau_hat=c_tau_hat,
             n=N_SAMPLES,
@@ -305,14 +308,14 @@ class ModelBuilder:
             gen_model_log_likelihood(
                 has_gamma=False, has_tau=True, model=model_skeleton
             ),
-            boundary_gamma=boundary_gamma,
-            boundary_tau=boundary_tau,
+            center_gamma=boundary_gamma,
+            center_tau=boundary_tau,
             c_gamma_hat=c_gamma_hat,
             c_tau_hat=c_tau_hat,
             n=N_SAMPLES,
             quantiles=quantiles,
         )
-        if any(np.isnan(param["mean"]) for param in summary_2.values()):
+        if any(np.isnan(param.mean) for param in summary_2.values()):
             # Model failed - posterior is 0 everywhere
             samples_2 = np.full_like(samples_6, np.nan)
         else:
@@ -335,6 +338,7 @@ class ModelBuilder:
         model_full: ModelFull,
         model_skeleton: Optional[ModelSkeleton],
         no_s_hat: bool = True,
+        suppress_pareto_warning: bool = False,
     ) -> pd.DataFrame:
 
         def full_model_loglik_individual_array(params: np.ndarray) -> np.ndarray:
@@ -357,7 +361,9 @@ class ModelBuilder:
                     skeleton_model_loglik_individual_array,
                 )
 
-        compare_res = comparator.compare_elpd()
+        compare_res = comparator.compare_elpd(
+            suppress_pareto_warning=suppress_pareto_warning
+        )
         return compare_res
 
     @staticmethod
@@ -475,6 +481,7 @@ class ModelBuilder:
         model_skeleton_ref: ModelSkeleton,
         combined_data_comparison: dict[int, pd.DataFrame],
         data_path: str,
+        suppress_pareto_warning: bool = False,
     ) -> None:
 
         def log_lik_full_ref(params: np.ndarray) -> np.ndarray:
@@ -549,7 +556,9 @@ class ModelBuilder:
                 )
 
         logging.info("Comparing models using group %s data...", ref_index)
-        compare_res = comparator.compare_elpd()
+        compare_res = comparator.compare_elpd(
+            suppress_pareto_warning=suppress_pareto_warning
+        )
 
         res_dir = os.path.join(data_path, "comparison_results")
         os.makedirs(res_dir, exist_ok=True)

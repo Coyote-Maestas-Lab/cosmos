@@ -47,6 +47,7 @@ def _plot_scatterplot(data: "DMSData", type_col_dict: dict = None, ax=None):
         s=20,
         alpha=0.5,
         hue="type",
+        hue_order=type_col_dict.keys(),
         palette=type_col_dict,
     )
     _ = plt.xlabel(f"{data.phenotypes[0]} beta_hat")
