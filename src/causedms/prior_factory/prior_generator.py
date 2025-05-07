@@ -125,7 +125,7 @@ def generate_prior(
     x_gmm_n_components: int,
 ) -> dict[str, np.ndarray | float]:
     """
-    Generate prior for the causalDMS model:
+    Generate prior for the Cosmos model:
     - priors for gamma and tau - c_gamma_hat, c_tau_hat
     - priors for beta_1
     """

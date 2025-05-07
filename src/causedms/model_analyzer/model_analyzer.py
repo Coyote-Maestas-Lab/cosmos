@@ -9,7 +9,7 @@ from causedms.model_builder import ModelBuilder
 
 class ModelAnalyzer:
     """
-    Analyze results from a CausalDMS model.
+    Analyze results from a Cosmos model.
     """
 
     def __init__(self, model: ModelBuilder, data_path: str, has_position: bool = True):
@@ -31,7 +31,7 @@ class ModelAnalyzer:
             self.data, has_position=has_position
         )
 
-        self.data_summary, combined_data_comparison = ModelBuilder.summary_causal_dms(
+        self.data_summary, combined_data_comparison = ModelBuilder.summary_cosmos(
             model.data_path
         )
 
@@ -195,7 +195,7 @@ class ModelAnalyzer:
         """
         return self._select_model_by_rank(self.data_comparison, rank)
 
-    def summary(self, rank: int = 1) -> pd.DataFrame:
+    def summary(self, rank: int = 1, save: bool = False) -> pd.DataFrame:
         """
         Get the summary of each parameter from the x'th best model at each position.
 
@@ -221,5 +221,11 @@ class ModelAnalyzer:
         df_combined.rename(
             columns={"group": "position", "group_new": "group"}, inplace=True
         )
+
+        if save:
+            # Save the summary to a CSV file
+            output_file = os.path.join(self.data_path, f"summary_rank{rank}.csv")
+            df_combined.to_csv(output_file, index=False)
+            logging.info("Summary saved to %s", output_file)
 
         return df_combined

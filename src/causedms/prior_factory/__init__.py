@@ -1,5 +1,5 @@
 """
-Generate prior for the causalDMS model from the data
+Generate prior for the Cosmos model from the data
 """
 
 from .prior_factory import PriorFactory
