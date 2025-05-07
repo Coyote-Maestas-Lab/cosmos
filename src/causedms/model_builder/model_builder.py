@@ -55,8 +55,8 @@ class ModelBuilder:
     def prior(self):
         return self._prior.prior
 
-    ############################ Run CausalDMS  ############################
-    def run_causal_dms(
+    ############################ Run Cosmos  ############################
+    def run_cosmos(
         self,
         group_new_idx: int,
         no_s_hat: bool = True,
@@ -64,7 +64,7 @@ class ModelBuilder:
         suppress_pareto_warning: bool = True,
     ) -> None:
         """
-        Run CausalDMS for one specific group.
+        Run Cosmos for one specific group.
         """
 
         # initialize model
@@ -393,20 +393,20 @@ class ModelBuilder:
 
         return samples
 
-    def run_causal_dms_ref_comparison(
+    def run_cosmos_ref_comparison(
         self,
         ref_indices: list[int],
         data_path: Optional[str] = None,
         no_s_hat: bool = True,
     ) -> None:
         """
-        Run CausalDMS for reference group comparison.
-        Need the results of run_causalDMS on all positions.
+        Run Cosmos for reference group comparison.
+        Need the results of run_cosmos on all positions.
         """
         if data_path is None:
             data_path = self.data_path
 
-        _, combined_data_comparison = ModelBuilder.summary_causal_dms(data_path)
+        _, combined_data_comparison = ModelBuilder.summary_cosmos(data_path)
         for ref_index in ref_indices:
             model_full_ref, model_skeleton_ref = self.init_model(ref_index, no_s_hat)
             ModelBuilder.cross_comparison_ref_compare(
@@ -568,17 +568,17 @@ class ModelBuilder:
             os.path.join(res_dir, f"ref_{ref_index}.pkl"),
         )
 
-    ############################ Summary CausalDMS ############################
+    ############################ Summary Cosmos ############################
 
     @staticmethod
-    def summary_causal_dms(
+    def summary_cosmos(
         data_path: str,
     ) -> tuple[
         dict[int, dict[str, dict[str, MarginSummary]]],
         dict[int, pd.DataFrame],
     ]:
         """
-        Summary the pkl results of causalDMS across position groups.
+        Summary the pkl results of Cosmos across position groups.
         """
         combined_data_summary: dict[int, dict[str, dict[str, MarginSummary]]] = {}
         combined_data_comparison: dict[int, pd.DataFrame] = {}

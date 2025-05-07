@@ -1,5 +1,5 @@
 """
-Implements prior generation for the causalDMS model
+Implements prior generation for the Cosmos model
 """
 
 from causedms.dms_data import DMSData
