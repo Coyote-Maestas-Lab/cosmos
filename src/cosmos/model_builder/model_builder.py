@@ -14,10 +14,10 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.linear_model import LinearRegression
 
-from causedms.adapt_grid.grid import Grid, GridMargin, MarginSummary
-from causedms.likelihood.double import ModelFull, ModelSkeleton
-from causedms.model_comparator.elpd_pairwise import ElpdPairwise
-from causedms.prior_factory import PriorFactory
+from cosmos.adapt_grid.grid import Grid, GridMargin, MarginSummary
+from cosmos.likelihood.double import ModelFull, ModelSkeleton
+from cosmos.model_comparator.elpd_pairwise import ElpdPairwise
+from cosmos.prior_factory import PriorFactory
 
 from .model_loglik import gen_model_log_likelihood
 

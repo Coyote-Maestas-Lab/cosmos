@@ -2,7 +2,7 @@
 Implements prior generation for the Cosmos model
 """
 
-from causedms.dms_data import DMSData
+from cosmos.dms_data import DMSData
 
 from .plot import _plot_histogram_with_gmm
 from .prior_generator import generate_prior

@@ -3,8 +3,8 @@ import os
 
 import pandas as pd
 
-from causedms.adapt_grid.grid import MarginSummary
-from causedms.model_builder import ModelBuilder
+from cosmos.adapt_grid.grid import MarginSummary
+from cosmos.model_builder import ModelBuilder
 
 
 class ModelAnalyzer:
