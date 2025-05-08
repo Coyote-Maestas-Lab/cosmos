@@ -4,7 +4,7 @@ Generate model log likelihoods
 
 import numpy as np
 
-from causedms.likelihood.double import DoublePhenotypeModel
+from cosmos.likelihood.double import DoublePhenotypeModel
 
 
 def gen_model_log_likelihood(
