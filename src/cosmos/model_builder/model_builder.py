@@ -5,8 +5,9 @@ Generate samples and summary for all models
 import logging
 import os
 import pickle
+from collections.abc import Callable, Sequence
 from functools import partial
-from typing import Callable, Iterable, Optional
+from typing import Optional
 
 import arviz as az
 import numpy as np
@@ -184,14 +185,14 @@ class ModelBuilder:
 
     @staticmethod
     def _generate_model_sample_impl(
-        param_names: Iterable[str],
+        param_names: Sequence[str],
         log_lik_all: Callable,
         center_gamma: float,
         center_tau: float,
         c_gamma_hat: float,
         c_tau_hat: float,
         n: int = 1000,
-        quantiles: Iterable[float] = (),
+        quantiles: Sequence[float] = (),
     ) -> tuple[Optional[np.ndarray], Optional[dict[str, MarginSummary]]]:
         """
         Generate samples for a given model and given parameters
@@ -240,7 +241,7 @@ class ModelBuilder:
         model_full: ModelFull,
         model_skeleton: Optional[ModelSkeleton],
         no_s_hat: bool = True,
-        quantiles: Iterable[float] = (0.25, 0.5, 0.75),
+        quantiles: Sequence[float] = (0.25, 0.5, 0.75),
     ) -> tuple[dict[str, dict[str, MarginSummary]], dict[str, np.ndarray]]:
         """
         Generate samples of all six/four models for one specific group.

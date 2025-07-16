@@ -2,7 +2,8 @@
 Data preprocessing and prior generation for causal inference.
 """
 
-from typing import Iterable, Optional
+from collections.abc import Sequence
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -18,7 +19,7 @@ class DMSData:
     def __init__(
         self,
         data: pd.DataFrame,
-        phenotypes: Iterable[str],
+        phenotypes: Sequence[str],
         include_type: Optional[list[str]] = None,
         exclude_type: Optional[list[str]] = None,
         min_num_variants_per_group: int = 10,
@@ -41,7 +42,7 @@ class DMSData:
         self.prior = None
 
     @staticmethod
-    def _check_cols(data: pd.DataFrame, phenotypes: Iterable[str]) -> None:
+    def _check_cols(data: pd.DataFrame, phenotypes: Sequence[str]) -> None:
         """
         Check if the required columns are present in the data.
         """
