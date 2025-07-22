@@ -56,6 +56,10 @@ class ModelBuilder:
     def prior(self):
         return self._prior.prior
 
+    @property
+    def phenotypes(self):
+        return self._prior.phenotypes
+
     ############################ Run Cosmos  ############################
     def run_cosmos(
         self,
