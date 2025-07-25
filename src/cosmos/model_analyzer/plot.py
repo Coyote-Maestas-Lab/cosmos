@@ -2,43 +2,18 @@
 Plotting utilities for ModelAnalyzer
 """
 
-from dataclasses import dataclass
 from itertools import product
 from typing import Literal, Optional
 
-import numpy as np
-
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
+from adjustText import adjust_text
 from matplotlib.axes import Axes
 
-from adjustText import adjust_text
+from cosmos.hgvs import Missense
 
 from .model_analyzer import ModelAnalyzer
-
-
-@dataclass
-class Missense:
-    """
-    Parses a missense mutation in the format `p.(I328P)`.
-    """
-
-    wildtype: str
-    position: int
-    mutant: str
-
-    @classmethod
-    def from_hgvs(cls, hgvs: str):
-        """
-        e.g. `p.(I328P)`
-        """
-        assert hgvs.startswith("p.(") and hgvs.endswith(")")
-        hgvs = hgvs[3:-1]
-        return cls(
-            wildtype=hgvs[0],
-            position=int(hgvs[1:-1]),
-            mutant=hgvs[-1],
-        )
 
 
 def _parse_mutant(hgvs: str) -> Optional[str]:
