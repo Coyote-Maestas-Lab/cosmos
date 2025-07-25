@@ -65,7 +65,7 @@ def mixture_params(
 
 def integrated_params_prior(
     df: pd.DataFrame, x_gmm_n_components: int, x_name: str, y_name: str, x_se_name: str
-) -> dict[str, np.ndarray]:
+) -> dict[str, np.ndarray | dict]:
     """
     Prior for parameters after integration
     """

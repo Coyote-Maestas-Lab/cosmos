@@ -4,7 +4,8 @@ See Vehtari, Gelman, and Gabry (2017) for more details.
 """
 
 import warnings
-from typing import Callable, Iterable, Optional
+from collections.abc import Callable, Sequence
+from typing import Optional
 
 import arviz as az
 import numpy as np
@@ -122,7 +123,7 @@ class ElpdPairwise:
 
     def compare_elpd(
         self,
-        model_names: Optional[Iterable[str]] = None,
+        model_names: Optional[Sequence[str]] = None,
         reevaluate: bool = False,
         suppress_pareto_warning: bool = False,
     ) -> pd.DataFrame:

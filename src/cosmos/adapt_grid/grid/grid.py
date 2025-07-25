@@ -4,8 +4,8 @@ Adaptive grid approximation for Bayesian posterior approximation,
 """
 
 import itertools
-from collections.abc import Hashable
-from typing import Callable, Iterable, Optional
+from collections.abc import Callable, Hashable, Sequence
+from typing import Optional
 
 import numpy as np
 from scipy.special import logsumexp
@@ -13,7 +13,7 @@ from scipy.special import logsumexp
 from . import GRID_TOL, GridMargin, logger
 from .margin_summary import MarginSummary
 
-type HypercubeKey = Iterable[tuple[float, float]]
+type HypercubeKey = Sequence[tuple[float, float]]
 
 
 class Grid:  # pylint: disable=too-many-instance-attributes
@@ -26,11 +26,11 @@ class Grid:  # pylint: disable=too-many-instance-attributes
     TOL = GRID_TOL
 
     def __init__(
-        self, axes: Iterable[GridMargin], log_lik: Callable[[np.ndarray], float]
+        self, axes: Sequence[GridMargin], log_lik: Callable[[np.ndarray], float]
     ):
 
         self.log_lik = log_lik
-        self.axes: Iterable[GridMargin] = axes
+        self.axes: Sequence[GridMargin] = axes
 
         # Store the data for each hypercube, indexed by the midpoints
         self.grid_data = {}
@@ -89,7 +89,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
     def __str__(self) -> str:
         return "Grid (" + " X ".join(self.names) + ")"
 
-    def names(self) -> Iterable[str]:
+    def names(self) -> list[str]:
         """
         Names of the axes, in order.
         """
@@ -158,7 +158,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
             logger.warning("End: %s", vals["end"])
         vals["_log_prior_log_lik"] = vals["log_lik"] + vals["log_prior"]
 
-    def approx_log_posterior(self, point: Iterable[float]) -> float:
+    def approx_log_posterior(self, point: Sequence[float]) -> float:
         """
         Approximate log posterior with the midpoint log posterior of the corresponding hypercube
 
@@ -173,7 +173,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
 
     def _get_hypercubes_from_margin(
         self, axis: int | str, idx: int
-    ) -> Iterable[HypercubeKey]:
+    ) -> list[HypercubeKey]:
         """
         Get the hypercubes that contain the indexed interval on an axis.
         """
@@ -232,7 +232,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
 
     def marginal_posterior_summary(
         self,
-        quantiles: Iterable[float],
+        quantiles: Sequence[float],
         reevaluate: bool = False,
     ) -> dict[str, MarginSummary]:
         """
@@ -256,7 +256,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _get_axis_marginal_posterior_summary(
-        axis: GridMargin, quantiles: Iterable[float]
+        axis: GridMargin, quantiles: Sequence[float]
     ) -> MarginSummary:
         """
         Summarize the marginal posterior for a single axis.
@@ -435,7 +435,7 @@ class Grid:  # pylint: disable=too-many-instance-attributes
         # Scan again
         self._adapt_split_global(log_post_thres, n, min_log_vol)
 
-    def _sample_hcube(self, n: int) -> Iterable[HypercubeKey]:
+    def _sample_hcube(self, n: int) -> Sequence[HypercubeKey]:
         """
         Sample from the posterior distribution.
 
@@ -478,10 +478,10 @@ class Grid:  # pylint: disable=too-many-instance-attributes
 
 
 def weighted_quantile(
-    begin: Iterable[float],
-    end: Iterable[float],
-    weights: Iterable[float],
-    quantile: float | Iterable[float],
+    begin: Sequence[float],
+    end: Sequence[float],
+    weights: Sequence[float],
+    quantile: float | Sequence[float],
 ) -> list[float]:
     """
     Calculate the weighted median of a list of intervals.

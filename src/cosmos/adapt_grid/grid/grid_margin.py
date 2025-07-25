@@ -4,7 +4,7 @@ Building blocks for Grid.
 """
 
 import bisect
-from typing import Callable, Iterable
+from collections.abc import Callable, Generator, Sequence
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class GridMargin:
     def __str__(self) -> str:
         return f"{self.name} axis ({self.begin[0]}, {self.end[-1]})"
 
-    def __iter__(self) -> Iterable:
+    def __iter__(self) -> Generator[dict[str, float]]:
         for begin, end, mid, prior_val in zip(
             self.begin, self.end, self.mid, self.prior_val
         ):
@@ -99,7 +99,7 @@ class GridMargin:
         return self[-1]
 
     @staticmethod
-    def _bisect_exact_with_tol(x: float, arr: Iterable[float]) -> int:
+    def _bisect_exact_with_tol(x: float, arr: Sequence[float]) -> int:
         """
         Find the index of x in the sorted array arr, exact match with tolerance.
         """
@@ -112,8 +112,8 @@ class GridMargin:
 
     @staticmethod
     def _round_to_arr_with_tol(
-        x: float | Iterable[float], arr: Iterable[float]
-    ) -> float:
+        x: float | Sequence[float], arr: Sequence[float]
+    ) -> float | list[float]:
         """
         Round x to the nearest value in arr.
         """
@@ -200,7 +200,7 @@ class GridMargin:
 
     def split_interval(
         self, begin: float, end: float, n: int
-    ) -> Iterable[dict[str, float]]:
+    ) -> list[dict[str, float]]:
         """
         If the interval (begin, end) is not already split, split it into n smaller intervals.
 
@@ -223,7 +223,7 @@ class GridMargin:
         )
         return [self.get_interval(b, e) for b, e in zip(split_begins, split_ends)]
 
-    def _split_interval_impl(self, idx: int, n: int) -> Iterable[dict[str, float]]:
+    def _split_interval_impl(self, idx: int, n: int) -> list[dict[str, float]]:
         """
         Split the interval at index idx into n smaller intervals.
         """
@@ -231,7 +231,7 @@ class GridMargin:
         old_start, old_end = self.begin[idx], self.end[idx]
         finer_margin = GridMargin(old_start, old_end, n, self.prior)
 
-        def insert_at_index(original: Iterable, i: int, other: Iterable):
+        def insert_at_index(original: list, i: int, other: list) -> list:
             if (i < 0) or (i >= len(original)):
                 raise IndexError("Index out of range.")
             return original[:i] + other + original[i + 1 :]
@@ -252,7 +252,7 @@ class GridMargin:
         if x <= self.begin[0]:
             return -1
         # Use bisection
-        idx = np.searchsorted(self.end, x)
+        idx: int = np.searchsorted(self.end, x)
 
         return idx
 
@@ -283,3 +283,5 @@ class GridMargin:
             integrate.quad(prior, grid_begin, grid_end)[0]
             for grid_begin, grid_end in zip(grid.begin, grid.end)
         ]
+
+        return grid

@@ -1,5 +1,10 @@
+"""
+Analyze results from a Cosmos model, given that the samples have been generated.
+"""
+
 import logging
 import os
+from functools import cached_property
 
 import pandas as pd
 
@@ -44,6 +49,10 @@ class ModelAnalyzer:
     @property
     def data(self) -> pd.DataFrame:
         return self.model.data
+
+    @property
+    def phenotypes(self) -> list[str]:
+        return self.model.phenotypes
 
     @staticmethod
     def get_position_group_mapping(
@@ -229,3 +238,10 @@ class ModelAnalyzer:
             logging.info("Summary saved to %s", output_file)
 
         return df_combined
+
+    @cached_property
+    def best_models(self) -> pd.DataFrame:
+        """
+        Get the best model for each position.
+        """
+        return self.summary(rank=1)
