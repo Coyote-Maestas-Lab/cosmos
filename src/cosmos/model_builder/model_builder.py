@@ -61,6 +61,14 @@ class ModelBuilder:
         return self._prior.phenotypes
 
     ############################ Run Cosmos  ############################
+    @property
+    def all_group_new_index(self) -> list[int]:
+        """
+        Convenience property to get the possible `group_new_index`s.
+        """
+
+        return sorted(list(self.prior["pi"]))  # type: ignore
+
     def run_cosmos(
         self,
         group_new_idx: int,
@@ -69,7 +77,7 @@ class ModelBuilder:
         suppress_pareto_warning: bool = True,
     ) -> None:
         """
-        Run Cosmos for one specific group.
+        Run Cosmos for one specific group_new.
         """
 
         # initialize model

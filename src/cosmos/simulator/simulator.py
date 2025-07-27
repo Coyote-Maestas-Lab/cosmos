@@ -2,12 +2,14 @@
 A generatative model for Cosmos
 """
 
-from typing import Optional
+from collections.abc import Sequence
+from typing import Literal, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.axes import Axes
 
 from cosmos.dms_data import DMSData
 from cosmos.model_builder import ModelBuilder
@@ -30,9 +32,11 @@ class Simulator:
 
     def __init__(self, config: Optional[Config] = None):
         # Set up configurations
-        self.config = DEFAULT_CONFIG if config is None else config
+        self.config: Config = DEFAULT_CONFIG if config is None else config
 
-    def _simulate_position_class(self) -> pd.DataFrame:
+    ####### Simulation Functions #######
+
+    def _simulate_x_class(self) -> pd.DataFrame:
         """
         For each position, generate position class from a multinomial distribution (labels: config.class_x.class_type)
         """
@@ -45,33 +49,70 @@ class Simulator:
         components = np.random.choice(n_components, size=n_samples, p=weights)
         position_class = [self.config.class_x.class_type[k] for k in components]
 
-        # concat into a dataframe with two columns: compoenents and gamma
-        df_class = pd.DataFrame({"class": position_class})
+        # concat into a dataframe with two columns: components and gamma
+        df_class = pd.DataFrame({"x_class": position_class})
         df_class["position"] = range(n_samples)
 
         return df_class
 
-    def _simulate_position(self, plot: bool) -> pd.DataFrame:
+    @staticmethod
+    def get_true_model(
+        tau_group: int, gamma_group: int, x_class: Literal["null", "mixed"]
+    ) -> str:
+        """
+        Get the model name based on tau_group, gamma_group, and x_class.
+        """
+
+        match tau_group, gamma_group, x_class:
+            case 0, _, "null":
+                model_idx = 1
+            case 1, _, "null":
+                model_idx = 2
+            case 0, 0, "mixed":
+                model_idx = 3
+            case 1, 0, "mixed":
+                model_idx = 4
+            case 0, 1, "mixed":
+                model_idx = 5
+            case 1, 1, "mixed":
+                model_idx = 6
+            case _:
+                raise ValueError(
+                    f"Unrecognized combination of tau_group={tau_group}, gamma_group={gamma_group}, x_class={x_class}"
+                )
+
+        return f"model_{model_idx}"
+
+    def _simulate_position(self) -> pd.DataFrame:
         """
         For each position, generate gamma, tau, and position class.
 
-        Result columns: position, group_gamma, gamma, group_tau, tau, class
+        Result columns: position, gamma_group, gamma, tau_group, tau, class
         """
         # For each position, generate gamma and tau from a gaussian mixture model
-        df_gamma = self._simulate_gamma(plot=plot)
-        df_tau = self._simulate_tau(plot=plot)
+        df_gamma = self._simulate_gamma()
+        df_tau = self._simulate_tau()
 
         # For each position, generate position class from a multinomial distribution
-        df_class = self._simulate_position_class()
+        df_class = self._simulate_x_class()
         df_position = pd.merge(df_gamma, df_tau, on="position")
         df_position = df_position[
-            ["position", "group_gamma", "gamma", "group_tau", "tau"]
+            ["position", "gamma_group", "gamma", "tau_group", "tau"]
         ]
         df_position = pd.merge(df_position, df_class, on="position")
 
+        df_position["model"] = df_position.apply(
+            lambda row: self.get_true_model(
+                tau_group=row["tau_group"],
+                gamma_group=row["gamma_group"],
+                x_class=row["x_class"],
+            ),
+            axis=1,
+        )
+
         return df_position
 
-    def _simulate_variant(self, df_position: pd.DataFrame, plot: bool) -> pd.DataFrame:
+    def _simulate_variant(self, df_position: pd.DataFrame) -> pd.DataFrame:
         """
         Generate position * n_variant_per_position variants.
         For each variant, based on its position information, generate beta_x,
@@ -87,34 +128,32 @@ class Simulator:
         sigma_x, sigma_y (from config)
         """
         df_variant = self._init_position_variant_id()
-        df_beta_x = self._simulate_beta_x(df_position, plot=plot)
+        df_beta_x = self._simulate_beta_x(df_position)
         df_variant = pd.merge(df_variant, df_beta_x, on="variant")
         df_variant = pd.merge(
             df_variant, df_position, on="position"
         )  # merge into variant
 
-        df_variant = self._simulate_beta_y(df_variant, plot=plot)
-        df_variant = self._simulate_beta_x_y_hat(df_variant, plot=True)
+        df_variant = self._simulate_beta_y(df_variant)
+        df_variant = self._simulate_beta_x_y_hat(df_variant)
         df_variant["sigma_x"] = self.config.observation.sigma_x
         df_variant["sigma_y"] = self.config.observation.sigma_y
 
         return df_variant
 
-    def simulate(self, plot: bool = False):
+    def simulate(self):
         """
         Run simulation
         """
 
         np.random.seed(self.config.simulation.seed)
 
-        self.df_position = self._simulate_position(plot=plot)
-        self.df_variant = self._simulate_variant(
-            df_position=self.df_position, plot=plot
-        )
+        self.df_position = self._simulate_position()
+        self.df_variant = self._simulate_variant(df_position=self.df_position)
 
-    def run_cosmos(self, model_path) -> None:
+    def build_cosmos(self, model_path) -> None:
         """
-        Run Cosmos model with the simulated data.
+        Build Cosmos objects with the simulated data.
         """
         if self.df_variant is None or self.df_position is None:
             raise ValueError("Simulation not run.")
@@ -182,9 +221,7 @@ class Simulator:
 
         return df_position_variant_id
 
-    def _simulate_beta_x(
-        self, df_position: pd.DataFrame, plot: bool = False
-    ) -> pd.DataFrame:
+    def _simulate_beta_x(self, df_position: pd.DataFrame) -> pd.DataFrame:
         """
         Simulate beta_x from a gaussian mixture model
         """
@@ -201,10 +238,10 @@ class Simulator:
         beta_x = []
         model_x = []
         for _, row in df_position.iterrows():
-            if row["class"] == "null":
+            if row["x_class"] == "null":
                 model_x.extend(["null"] * nvar)
                 beta_x.extend([0] * nvar)
-            elif row["class"] == "mixed":
+            elif row["x_class"] == "mixed":
                 components = np.random.choice(n_components, size=nvar, p=weights)
                 beta_x.extend(
                     [
@@ -213,19 +250,16 @@ class Simulator:
                     ]
                 )
                 model_x.extend(components)
+            else:
+                raise ValueError(f"Unrecognized class {row['class']}")
 
         # concat into a dataframe with two columns: compoenents and beta_x
         df_beta_x = pd.DataFrame({"class_x": model_x, "beta_x": beta_x})
         df_beta_x["variant"] = range(len(df_beta_x))
 
-        if plot:
-            self._plot_beta_x(df_beta_x)
-
         return df_beta_x
 
-    def _simulate_beta_y(
-        self, df_variant: pd.DataFrame, plot: bool = False
-    ) -> pd.DataFrame:
+    def _simulate_beta_y(self, df_variant: pd.DataFrame) -> pd.DataFrame:
         """
         Simulate beta_y from beta_x, gamma, and tau
         """
@@ -241,14 +275,9 @@ class Simulator:
             + df_variant["theta"]
         )
 
-        if plot:
-            self._plot_beta_y(df_variant)
-
         return df_variant
 
-    def _simulate_beta_x_y_hat(
-        self, df_variant: pd.DataFrame, plot: bool = False
-    ) -> pd.DataFrame:
+    def _simulate_beta_x_y_hat(self, df_variant: pd.DataFrame) -> pd.DataFrame:
         """
         Simulate beta_x_hat and beta_y_hat from beta_x and beta_y
         """
@@ -262,12 +291,9 @@ class Simulator:
             0, self.config.observation.sigma_y, len(df_variant)
         )
 
-        if plot:
-            self._plot_beta_x_y_hat(df_variant)
-
         return df_variant
 
-    def _simulate_gamma(self, plot: bool = False) -> pd.DataFrame:
+    def _simulate_gamma(self) -> pd.DataFrame:
         """
         For each position, generate gamma from a gaussian mixture model
         """
@@ -287,16 +313,12 @@ class Simulator:
         )
 
         # concat into a dataframe with two columns: components and gamma
-        df_gamma = pd.DataFrame({"group_gamma": components, "gamma": gamma})
+        df_gamma = pd.DataFrame({"gamma_group": components, "gamma": gamma})
         df_gamma["position"] = range(n_samples)
-
-        # plot
-        if plot:
-            self._plot_gamma(df_gamma)
 
         return df_gamma
 
-    def _simulate_tau(self, plot: bool = False) -> pd.DataFrame:
+    def _simulate_tau(self) -> pd.DataFrame:
         """
         For each position, simulate tau from a gaussian mixture model
         """
@@ -316,23 +338,54 @@ class Simulator:
         )
 
         # concat into a dataframe with two columns: components and tau
-        df_tau = pd.DataFrame({"group_tau": components, "tau": tau})
+        df_tau = pd.DataFrame({"tau_group": components, "tau": tau})
         df_tau["position"] = range(n_samples)
-
-        # plot
-        if plot:
-            self._plot_tau(df_tau)
 
         return df_tau
 
+    ####### Run analysis #######
+    def run_cosmos(
+        self,
+        group_new_idx: int,
+        no_s_hat: bool = False,
+        suppress_pareto_warning: bool = True,
+    ) -> None:
+        """
+        Run Cosmos for one specific group_new on the simulated data.
+        """
+        if self.df_variant is None or self.df_position is None:
+            raise ValueError("Simulation not run.")
+
+        self.model.run_cosmos(
+            group_new_idx=group_new_idx,
+            no_s_hat=no_s_hat,
+            suppress_pareto_warning=suppress_pareto_warning,
+        )
+
+    ####### Plotting Functions #######
+
+    def plot_beta_x_y_hat(
+        self, axes: Optional[Sequence[Axes]] = None
+    ) -> Sequence[Axes]:
+        """
+        Plot beta_x_hat and beta_y_hat from the simulated data.
+        """
+        if self.df_variant is None:
+            raise ValueError("Simulation not run.")
+
+        if axes is None:
+            _, axes = plt.subplots(1, 3, figsize=(15, 4), dpi=200)
+
+        return self._plot_beta_x_y_hat(self.df_variant, axes=axes)  # type: ignore[assign]
+
     @staticmethod
-    def _plot_beta_x_y_hat(df_variant: pd.DataFrame):
+    def _plot_beta_x_y_hat(
+        df_variant: pd.DataFrame,
+        axes: Sequence[Axes],
+    ) -> Sequence[Axes]:
         """
         Plot beta_x_hat and beta_y_hat
         """
-        # plot three figures in a row
-        _, axs = plt.subplots(1, 3, figsize=(15, 4), dpi=200)
-
         # plot beta_x_hat
         _ = sns.histplot(
             data=df_variant,
@@ -340,11 +393,11 @@ class Simulator:
             bins=50,
             alpha=0.6,
             kde=True,
-            ax=axs[0],
+            ax=axes[0],
         )
-        axs[0].set_title(r"Simulated $\hat{beta}_x$")
-        axs[0].set_xlabel("Value")
-        axs[0].set_ylabel("Density")
+        _ = axes[0].set_title(r"Simulated $\hat{\beta}_x$")
+        _ = axes[0].set_xlabel(r"$\hat{\beta}_{x, ij}$")
+        _ = axes[0].set_ylabel("Frequency")
 
         # plot beta_y_hat
         _ = sns.histplot(
@@ -353,11 +406,11 @@ class Simulator:
             bins=50,
             alpha=0.6,
             kde=True,
-            ax=axs[1],
+            ax=axes[1],
         )
-        axs[1].set_title("Simulated beta_y_hat")
-        axs[1].set_xlabel("Value")
-        axs[1].set_ylabel("Density")
+        _ = axes[1].set_title(r"Simulated $\hat{\beta}_y$")
+        _ = axes[1].set_xlabel(r"$\hat{\beta}_{y, ij}$")
+        _ = axes[1].set_ylabel("Frequency")
 
         # plot scatterplot of beta_x_hat and beta_y_hat
         _ = sns.scatterplot(
@@ -365,74 +418,34 @@ class Simulator:
             x="beta_x_hat",
             y="beta_y_hat",
             alpha=0.6,
-            ax=axs[2],
+            zorder=1,
+            ax=axes[2],
         )
-        axs[2].set_title(r"Scatterplot of $\hat{beta}_x$ and $\hat{beta}_y$")
-        axs[2].set_xlabel(r"$\hat{beta}_x$")
-        axs[2].set_ylabel(r"$\hat{beta}_y$")
+        _ = axes[2].axhline(0.0, color="lightgray", linestyle="--", zorder=0)
+        _ = axes[2].axvline(0.0, color="lightgray", linestyle="--", zorder=0)
+        _ = axes[2].set_title(r"Scatterplot of $\hat{\beta}_x$ and $\hat{\beta}_y$")
+        _ = axes[2].set_xlabel(r"$\hat{\beta}_{x, ij}$")
+        _ = axes[2].set_ylabel(r"$\hat{\beta}_{y, ij}$")
 
-        plt.tight_layout()
-        plt.show()
+        return axes
+
+    def plot_beta_x(self, ax: Optional[Axes] = None) -> Axes:
+        """
+        Plot beta_x from the simulated data.
+        """
+        if self.df_variant is None:
+            raise ValueError("Simulation not run.")
+
+        if ax is None:
+            _, ax = plt.subplots(1, 1, figsize=(5, 4), dpi=200)
+
+        return self._plot_beta_x(self.df_variant, ax=ax)
 
     @staticmethod
-    def _plot_beta_y(df_variant: pd.DataFrame):
+    def _plot_beta_x(df_beta_x: pd.DataFrame, ax: Axes) -> Axes:
         """
-        Density plot of beta_y
+        Frequency plot of beta_x
         """
-        _ = plt.figure(figsize=(5, 4), dpi=200)
-        _ = sns.histplot(
-            data=df_variant,
-            x="beta_y",
-            bins=50,
-            alpha=0.6,
-            kde=True,
-        )
-        _ = plt.title(r"Simulated $\beta_y$")
-        _ = plt.xlabel("Value")
-        _ = plt.ylabel("Density")
-        plt.show()
-
-    @staticmethod
-    def _plot_gamma(df_gamma: pd.DataFrame):
-        _ = plt.figure(figsize=(5, 4), dpi=200)
-        _ = sns.histplot(
-            data=df_gamma,
-            x="gamma",
-            bins=50,
-            alpha=0.6,
-            hue="group_gamma",
-            kde=True,
-        )
-        _ = plt.title(r"Simulated $\gamma$ from Gaussian Mixture Model")
-        _ = plt.xlabel("Value")
-        _ = plt.ylabel("Density")
-        plt.show()
-
-    @staticmethod
-    def _plot_tau(df_tau: pd.DataFrame):
-        """
-        Density plot of tau
-        """
-        _ = plt.figure(figsize=(5, 4), dpi=200)
-        _ = sns.histplot(
-            data=df_tau,
-            x="tau",
-            bins=50,
-            alpha=0.6,
-            hue="group_tau",
-            kde=True,
-        )
-        _ = plt.title(r"Simulated $\tau$ from Gaussian Mixture Model")
-        _ = plt.xlabel("Value")
-        _ = plt.ylabel("Density")
-        plt.show()
-
-    @staticmethod
-    def _plot_beta_x(df_beta_x: pd.DataFrame):
-        """
-        Density plot of beta_x
-        """
-        _ = plt.figure(figsize=(5, 4), dpi=200)
         _ = sns.histplot(
             data=df_beta_x,
             x="beta_x",
@@ -440,8 +453,102 @@ class Simulator:
             alpha=0.6,
             hue="class_x",
             kde=True,
+            ax=ax,
         )
-        _ = plt.title(r"Simulated $\beta_x$ from Gaussian Mixture Model")
-        _ = plt.xlabel("Value")
-        _ = plt.ylabel("Density")
-        plt.show()
+        _ = ax.set_title(r"Simulated $\beta_x$ from Gaussian Mixture Model")
+        _ = ax.set_xlabel(r"$\beta_{x, ij}$")
+        _ = ax.set_ylabel("Frequency")
+
+        return ax
+
+    def plot_beta_y(self, ax: Optional[Axes] = None) -> Axes:
+        """
+        Plot beta_y from the simulated data.
+        """
+        if self.df_variant is None:
+            raise ValueError("Simulation not run.")
+
+        if ax is None:
+            _, ax = plt.subplots(1, 1, figsize=(5, 4), dpi=200)
+
+        return self._plot_beta_y(self.df_variant, ax=ax)
+
+    @staticmethod
+    def _plot_beta_y(df_variant: pd.DataFrame, ax: Axes) -> Axes:
+        """
+        Frequency plot of beta_y
+        """
+        _ = sns.histplot(
+            data=df_variant,
+            x="beta_y",
+            bins=50,
+            alpha=0.6,
+            kde=True,
+            ax=ax,
+        )
+        _ = ax.set_title(r"Simulated $\beta_y$")
+        _ = ax.set_xlabel(r"$\beta_{y, ij}$")
+        _ = ax.set_ylabel("Frequency")
+
+        return ax
+
+    def plot_gamma(self, ax: Optional[Axes] = None) -> Axes:
+        """
+        Plot gamma from the simulated data.
+        """
+        if self.df_position is None:
+            raise ValueError("Simulation not run.")
+
+        if ax is None:
+            _, ax = plt.subplots(1, 1, figsize=(5, 4), dpi=200)
+
+        return self._plot_gamma(self.df_position, ax=ax)
+
+    @staticmethod
+    def _plot_gamma(df_gamma: pd.DataFrame, ax: Axes) -> Axes:
+        _ = sns.histplot(
+            data=df_gamma,
+            x="gamma",
+            bins=50,
+            alpha=0.6,
+            hue="gamma_group",
+            kde=True,
+            ax=ax,
+        )
+        _ = ax.set_title(r"Simulated $\gamma$ from Gaussian Mixture Model")
+        _ = ax.set_xlabel(r"\gamma_i")
+        _ = ax.set_ylabel("Frequency")
+
+        return ax
+
+    def plot_tau(self, ax: Optional[Axes] = None) -> Axes:
+        """
+        Plot tau from the simulated data.
+        """
+        if self.df_position is None:
+            raise ValueError("Simulation not run.")
+
+        if ax is None:
+            _, ax = plt.subplots(1, 1, figsize=(5, 4), dpi=200)
+
+        return self._plot_tau(self.df_position, ax=ax)
+
+    @staticmethod
+    def _plot_tau(df_tau: pd.DataFrame, ax: Axes) -> Axes:
+        """
+        Frequency plot of tau
+        """
+        _ = sns.histplot(
+            data=df_tau,
+            x="tau",
+            bins=50,
+            alpha=0.6,
+            hue="tau_group",
+            kde=True,
+            ax=ax,
+        )
+        _ = ax.set_title(r"Simulated $\tau$ from Gaussian Mixture Model")
+        _ = ax.set_xlabel(r"\tau_i")
+        _ = ax.set_ylabel("Frequency")
+
+        return ax
