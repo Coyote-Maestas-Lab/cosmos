@@ -2,6 +2,7 @@
 A generatative model for Cosmos
 """
 
+import copy
 from collections.abc import Sequence
 from typing import Literal, Optional
 
@@ -32,7 +33,14 @@ class Simulator:
 
     def __init__(self, config: Optional[Config] = None):
         # Set up configurations
-        self.config: Config = DEFAULT_CONFIG if config is None else config
+        self.config: Config = self.default_config() if config is None else config
+
+    @staticmethod
+    def default_config() -> Config:
+        """
+        Returns the default configuration for the simulator.
+        """
+        return copy.deepcopy(DEFAULT_CONFIG)
 
     ####### Simulation Functions #######
 
