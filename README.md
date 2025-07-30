@@ -1,7 +1,7 @@
 # Cosmos
 
 <p align="left">
-  <img src="https://raw.githubusercontent.com/Coyote-Maestas-Lab/cosmos/refs/heads/main/cosmos_logo.png?token=GHSAT0AAAAAADFIRYFPCH3JQVI3DY6XCEWC2EJOIIQ" width="150">
+  <img src="https://raw.githubusercontent.com/Coyote-Maestas-Lab/cosmos/refs/heads/main/cosmos_logo.png" width="150">
 </p>
 
 ## Update
