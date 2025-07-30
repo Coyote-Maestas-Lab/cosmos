@@ -9,8 +9,9 @@ from .prior_generator import generate_prior
 
 
 class PriorFactory:
-    def __init__(self, data: DMSData):
+    def __init__(self, data: DMSData, *args, **kwargs):
         self._data = data
+        self.gen_prior(*args, **kwargs)
 
     def gen_prior(self, *args, regenerate: bool = False, **kwargs):
         """

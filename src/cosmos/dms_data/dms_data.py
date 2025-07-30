@@ -2,6 +2,7 @@
 Data preprocessing and prior generation for causal inference.
 """
 
+import warnings
 from collections.abc import Sequence
 from typing import Optional
 
@@ -108,7 +109,9 @@ class DMSData:
             exc_idx -= 1
 
         # combine the two dataframes
-        df_res = pd.concat([df_include_all, df_exclude_all], axis=0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            df_res = pd.concat([df_include_all, df_exclude_all], axis=0)
         df_res["group_new"] = df_res["group_new"].astype("int").astype("category")
 
         return df_res
