@@ -1,14 +1,14 @@
 [project]
 name = "cosmos-dms"
-version = "1.0.0"
-description = "Cosmos: A Position-Resolution  Causal Model for Direct and Indirect Effects in Protein Functions"
+version = "1.0.1"
+description = "Cosmos: A Position-Resolution Causal Model for Direct and Indirect Effects in Protein Functions"
 authors = [
     { name = "Jingyou Rao", email = "roseraosh@gmail.com" },
     { name = "Mingsen Wang", email = "mingsen.wang.sh@gmail.com" },
 ]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/Coyote-Maestas-Lab/cosmos"
+repository = "https://github.com/pimentellab/cosmos"
 requires-python = ">=3.12"
 dependencies = []
 
