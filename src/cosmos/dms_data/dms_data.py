@@ -54,7 +54,7 @@ class DMSData:
                 "type",
             }
             | {f"beta_hat_{i+1}" for i in range(len(phenotypes))}
-            | {f"se_hat_{i+1}" for i in range(len(phenotypes))}
+            # | {f"se_hat_{i+1}" for i in range(len(phenotypes))}
         )
 
         if not required_cols.issubset(data.columns):
