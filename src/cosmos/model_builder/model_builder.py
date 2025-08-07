@@ -363,7 +363,15 @@ class ModelBuilder:
             return model_skeleton.log_lik_individual(gamma, tau)
 
         comparator = ElpdPairwise(full_model_loglik_individual_array)
+        skip_idx = []
         for idx in [6, 5, 4, 3]:
+            samples = dict_samples[f"model_{idx}"]
+            if np.isnan(samples).any():
+                logging.warning(
+                    "Model %d samples contain NaN values, skipping comparison.", idx
+                )
+                skip_idx.append(idx)
+                continue
             comparator.add_model_post(dict_samples[f"model_{idx}"], f"model_{idx}")
 
         if not no_s_hat:
@@ -377,6 +385,13 @@ class ModelBuilder:
         compare_res = comparator.compare_elpd(
             suppress_pareto_warning=suppress_pareto_warning
         )
+
+        for idx in skip_idx:
+            compare_res.loc[f"model_{idx}"] = {
+                "rank": compare_res.shape[0] + 1,
+                "warning": True,
+                "scale": "NA",
+            }
         return compare_res
 
     @staticmethod
