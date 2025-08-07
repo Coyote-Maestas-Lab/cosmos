@@ -172,6 +172,12 @@ def plot_best_models(analyzer: ModelAnalyzer, ax: Optional[Axes] = None) -> Axes
     )
 
     _ = ax.set_ylabel("Best model")
+
+    # Only use integer ylabels
+    y_min = best_models["model"].min()
+    _ = ax.set_yticks(np.arange(y_min, 7))
+    _ = ax.set_yticklabels(np.arange(y_min, 7))
+
     _format_position_ax(ax, best_models["position"].max())
 
     return ax
