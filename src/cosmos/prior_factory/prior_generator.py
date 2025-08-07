@@ -79,9 +79,10 @@ def integrated_params_prior(
     # Adjust by square of geometric mean of se_hat_1
     if x_se_name not in df.columns:
         sigma2_k_hat_adjust = np.zeros_like(sigma2_k_hat)
-    sigma2_k_hat_adjust = np.exp(np.mean(np.log(df[x_se_name])) * 2)
-    if (sigma2_k_hat <= sigma2_k_hat_adjust).any():
-        logging.warning("sigma2_k_hat adjustment failed. Variance set to 0.")
+    else:
+        sigma2_k_hat_adjust = np.exp(np.mean(np.log(df[x_se_name])) * 2)
+        if (sigma2_k_hat <= sigma2_k_hat_adjust).any():
+            logging.warning("sigma2_k_hat adjustment failed. Variance set to 0.")
     gmm_params_M["sigma2_k_hat_adj"] = sigma2_k_hat - sigma2_k_hat_adjust
     # If any is negative, set to 0
     gmm_params_M["sigma2_k_hat_adj"][gmm_params_M["sigma2_k_hat_adj"] < 0] = 0
