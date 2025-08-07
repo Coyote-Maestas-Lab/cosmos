@@ -7,6 +7,7 @@ from typing import Literal, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from adjustText import adjust_text
 from matplotlib.axes import Axes
@@ -23,14 +24,37 @@ def _parse_mutant(hgvs: str) -> Optional[str]:
         return None
 
 
+def _get_global_lims(
+    data: pd.DataFrame, extra_margin: float = 0.02
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """
+    Get the global limits for the plot.
+
+    lower = min - extra_margin * (max - min)
+    upper = max + extra_margin * (max - min)
+    """
+
+    def get_lim(min_val: float, max_val: float) -> tuple[float, float]:
+        lower = min_val - extra_margin * (max_val - min_val)
+        upper = max_val + extra_margin * (max_val - min_val)
+        return lower, upper
+
+    xlim = get_lim(data["beta_hat_1"].min(), data["beta_hat_1"].max())
+    ylim = get_lim(data["beta_hat_2"].min(), data["beta_hat_2"].max())
+
+    return xlim, ylim
+
+
 def plot_position(
-    analyzer: ModelAnalyzer, position: int, ax: Optional[Axes] = None
+    analyzer: ModelAnalyzer, position: int, ax: Optional[Axes] = None, **kwargs
 ) -> Axes:
     """
     Plot the tau and gamma values for a specific position.
     """
     if ax is None:
         _, ax = plt.subplots(figsize=(3.75, 3.4))
+
+    xlim, ylim = _get_global_lims(analyzer.data)
 
     raw_data = analyzer.data[analyzer.data["group"] == position]
     raw_data = raw_data[raw_data["type"].isin(["missense"])]
@@ -53,6 +77,7 @@ def plot_position(
         zorder=1,
         alpha=0.8,
         ax=ax,
+        **kwargs,
     )
 
     # Add repel text labeling
@@ -86,8 +111,8 @@ def plot_position(
     _ = ax.set_xlabel(pheno1)
     _ = ax.set_ylabel(pheno2)
 
-    _ = ax.set_xlim(*ax.get_xlim())
-    _ = ax.set_ylim(*ax.get_ylim())
+    _ = ax.set_xlim(*xlim)
+    _ = ax.set_ylim(*ylim)
 
     _ = ax.set_title(f"Position {position} ({pheno1} vs {pheno2})")
 
