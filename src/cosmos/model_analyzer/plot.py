@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from adjustText import adjust_text
 from matplotlib.axes import Axes
 
 from cosmos.hgvs import Missense
 
+from ..adjust_text import adjust_text
 from .model_analyzer import ModelAnalyzer
 
 
@@ -128,7 +128,7 @@ def plot_position(
     if label:
         _ = adjust_text(
             texts,
-            arrowprops=dict(arrowstyle="->", color="grey"),
+            arrowprops={"arrowstyle": "->", "color": "grey"},
             expand=(1.2, 1.4),
             force_text=1.0,
         )
