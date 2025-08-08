@@ -95,13 +95,6 @@ def plot_position(
                 zorder=2,
             )
         )
-    # Adjust text to avoid overlaps
-    _ = adjust_text(
-        texts,
-        arrowprops=dict(arrowstyle="->", color="grey"),
-        expand=(1.2, 1.4),
-        force_text=1.0,
-    )
 
     _ = ax.axhline(0, color="grey", linestyle="--", zorder=-1)
     _ = ax.axvline(0, color="grey", linestyle="--", zorder=-1)
@@ -114,7 +107,7 @@ def plot_position(
     _ = ax.set_xlim(*xlim)
     _ = ax.set_ylim(*ylim)
 
-    _ = ax.set_title(f"Position {position} ({pheno1} vs {pheno2})")
+    # _ = ax.set_title(f"Position {position} ({pheno1} vs {pheno2})")
 
     plot_x = np.linspace(*ax.get_xlim(), 100)
     gamma, tau = res["gamma_mean"].fillna(0).values, res["tau_mean"].fillna(0).values
@@ -124,6 +117,14 @@ def plot_position(
         color="black",
         linestyle="-",
         zorder=0,
+    )
+
+    # Adjust text to avoid overlaps
+    _ = adjust_text(
+        texts,
+        arrowprops=dict(arrowstyle="->", color="grey"),
+        expand=(1.2, 1.4),
+        force_text=1.0,
     )
 
     return ax
