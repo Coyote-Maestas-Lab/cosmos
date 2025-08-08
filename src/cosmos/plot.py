@@ -3,13 +3,15 @@ Global plotting functions.
 For more specific plotting functions, see individual modules.
 """
 
+from collections import ChainMap
 from typing import Iterable, Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
-from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
+from matplotlib.colors import Colormap, LinearSegmentedColormap, Normalize, TwoSlopeNorm
+from matplotlib.typing import ColorType
 
 from cosmos.dms_data import DMSData
 from cosmos.hgvs import Missense
@@ -55,9 +57,9 @@ def plot_global_scatter(
 
     df = obj.data
 
-    palette = palette or {}
-    zorders = zorders or {}
-    alphas = alphas or {}
+    _palette = ChainMap(palette or {}, PALETTE)
+    _zorders = ChainMap(zorders or {}, ZORDERS)
+    _alphas = ChainMap(alphas or {}, ALPHAS)
 
     for label in types:
         subset = df[df["type"].str.startswith(label)]
@@ -66,11 +68,12 @@ def plot_global_scatter(
             x="beta_hat_1",
             y="beta_hat_2",
             label=label,
-            color=palette.get(label, PALETTE[label]),
+            color=_palette[label],
             s=25,
-            alpha=alphas.get(label, ALPHAS[label]),
+            alpha=_alphas[label],
             edgecolor="k",
             linewidth=0.5,
+            zorder=_zorders[label],
             ax=ax,
         )
 
@@ -105,6 +108,8 @@ def plot_global_heatmap(
     pheno: str,
     pos_range: Optional[tuple[int, int]] = None,
     ax: Optional[Axes] = None,
+    norm: Optional[Normalize] = None,
+    cmap: str | list[ColorType] | Colormap | None = None,
 ) -> Axes:
     """
     Plot a global heatmap of the phenotypes.
@@ -130,11 +135,11 @@ def plot_global_heatmap(
         width = plot_df_sel.shape[1] * 0.2
         _, ax = plt.subplots(figsize=(width, 4), dpi=300)
 
-    cmap = LinearSegmentedColormap.from_list(
+    cmap = cmap or LinearSegmentedColormap.from_list(
         "custom_cmap", ["darkblue", "white", "darkred"], N=256
     )
 
-    norm = TwoSlopeNorm(vmin=-3, vcenter=0, vmax=3)
+    norm = norm or TwoSlopeNorm(vmin=-3, vcenter=0, vmax=3)
 
     _ = sns.heatmap(
         plot_df_sel,
@@ -151,4 +156,8 @@ def plot_global_heatmap(
         square=True,
         ax=ax,
     )
+
+    # Use all ylabels
+    _ = ax.set_yticklabels(ax.get_yticks(), fontsize=12)
+
     return ax

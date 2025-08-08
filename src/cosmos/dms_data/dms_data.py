@@ -33,7 +33,10 @@ class DMSData:
             exclude_type = ["synonymous"]
 
         self.data = self.relabel_data_group(
-            data, include_type, exclude_type, min_num_variants_per_group
+            data.sort_values("group").reset_index(drop=True),
+            include_type,
+            exclude_type,
+            min_num_variants_per_group,
         )
         self.include_type = include_type
         self.exclude_type = exclude_type

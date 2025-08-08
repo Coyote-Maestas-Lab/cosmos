@@ -638,7 +638,7 @@ class ModelBuilder:
         # check if the dict is empty
         if not combined_data_summary or not combined_data_comparison:
             raise ValueError(
-                "Either the summary and comparision dictionary is empty."
+                "Either the summary and comparision dictionary is empty. "
                 "Check if the provided data path is valid."
             )
 

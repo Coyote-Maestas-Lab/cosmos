@@ -7,12 +7,13 @@ from typing import Literal, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
-from adjustText import adjust_text
 from matplotlib.axes import Axes
 
 from cosmos.hgvs import Missense
 
+from ..adjust_text import adjust_text
 from .model_analyzer import ModelAnalyzer
 
 
@@ -23,14 +24,41 @@ def _parse_mutant(hgvs: str) -> Optional[str]:
         return None
 
 
+def _get_global_lims(
+    data: pd.DataFrame, extra_margin: float = 0.02
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """
+    Get the global limits for the plot.
+
+    lower = min - extra_margin * (max - min)
+    upper = max + extra_margin * (max - min)
+    """
+
+    def get_lim(min_val: float, max_val: float) -> tuple[float, float]:
+        lower = min_val - extra_margin * (max_val - min_val)
+        upper = max_val + extra_margin * (max_val - min_val)
+        return lower, upper
+
+    xlim = get_lim(data["beta_hat_1"].min(), data["beta_hat_1"].max())
+    ylim = get_lim(data["beta_hat_2"].min(), data["beta_hat_2"].max())
+
+    return xlim, ylim
+
+
 def plot_position(
-    analyzer: ModelAnalyzer, position: int, ax: Optional[Axes] = None
+    analyzer: ModelAnalyzer,
+    position: int,
+    ax: Optional[Axes] = None,
+    label: bool = True,
+    **kwargs,
 ) -> Axes:
     """
     Plot the tau and gamma values for a specific position.
     """
     if ax is None:
         _, ax = plt.subplots(figsize=(3.75, 3.4))
+
+    xlim, ylim = _get_global_lims(analyzer.data)
 
     raw_data = analyzer.data[analyzer.data["group"] == position]
     raw_data = raw_data[raw_data["type"].isin(["missense"])]
@@ -53,30 +81,25 @@ def plot_position(
         zorder=1,
         alpha=0.8,
         ax=ax,
+        **kwargs,
     )
 
     # Add repel text labeling
     texts = []
-    for _, row in raw_data.iterrows():
-        # wt = row["wildtype"]
-        texts.append(
-            ax.text(
-                row["beta_hat_1"],
-                row["beta_hat_2"],
-                row[aa_label],
-                fontsize=13,
-                ha="center",
-                va="center",
-                zorder=2,
+    if label:
+        for _, row in raw_data.iterrows():
+            # wt = row["wildtype"]
+            texts.append(
+                ax.text(
+                    row["beta_hat_1"],
+                    row["beta_hat_2"],
+                    row[aa_label],
+                    fontsize=13,
+                    ha="center",
+                    va="center",
+                    zorder=2,
+                )
             )
-        )
-    # Adjust text to avoid overlaps
-    _ = adjust_text(
-        texts,
-        arrowprops=dict(arrowstyle="->", color="grey"),
-        expand=(1.2, 1.4),
-        force_text=1.0,
-    )
 
     _ = ax.axhline(0, color="grey", linestyle="--", zorder=-1)
     _ = ax.axvline(0, color="grey", linestyle="--", zorder=-1)
@@ -86,10 +109,10 @@ def plot_position(
     _ = ax.set_xlabel(pheno1)
     _ = ax.set_ylabel(pheno2)
 
-    _ = ax.set_xlim(*ax.get_xlim())
-    _ = ax.set_ylim(*ax.get_ylim())
+    _ = ax.set_xlim(*xlim)
+    _ = ax.set_ylim(*ylim)
 
-    _ = ax.set_title(f"Position {position} ({pheno1} vs {pheno2})")
+    # _ = ax.set_title(f"Position {position} ({pheno1} vs {pheno2})")
 
     plot_x = np.linspace(*ax.get_xlim(), 100)
     gamma, tau = res["gamma_mean"].fillna(0).values, res["tau_mean"].fillna(0).values
@@ -100,6 +123,15 @@ def plot_position(
         linestyle="-",
         zorder=0,
     )
+
+    # Adjust text to avoid overlaps
+    if label:
+        _ = adjust_text(
+            texts,
+            arrowprops={"arrowstyle": "->", "color": "grey"},
+            expand=(1.2, 1.4),
+            force_text=1.0,
+        )
 
     return ax
 
@@ -147,6 +179,12 @@ def plot_best_models(analyzer: ModelAnalyzer, ax: Optional[Axes] = None) -> Axes
     )
 
     _ = ax.set_ylabel("Best model")
+
+    # Only use integer ylabels
+    y_min = best_models["model"].min()
+    _ = ax.set_yticks(np.arange(y_min, 7))
+    _ = ax.set_yticklabels(np.arange(y_min, 7))
+
     _format_position_ax(ax, best_models["position"].max())
 
     return ax
