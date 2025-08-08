@@ -46,7 +46,11 @@ def _get_global_lims(
 
 
 def plot_position(
-    analyzer: ModelAnalyzer, position: int, ax: Optional[Axes] = None, **kwargs
+    analyzer: ModelAnalyzer,
+    position: int,
+    ax: Optional[Axes] = None,
+    label: bool = True,
+    **kwargs,
 ) -> Axes:
     """
     Plot the tau and gamma values for a specific position.
@@ -82,19 +86,20 @@ def plot_position(
 
     # Add repel text labeling
     texts = []
-    for _, row in raw_data.iterrows():
-        # wt = row["wildtype"]
-        texts.append(
-            ax.text(
-                row["beta_hat_1"],
-                row["beta_hat_2"],
-                row[aa_label],
-                fontsize=13,
-                ha="center",
-                va="center",
-                zorder=2,
+    if label:
+        for _, row in raw_data.iterrows():
+            # wt = row["wildtype"]
+            texts.append(
+                ax.text(
+                    row["beta_hat_1"],
+                    row["beta_hat_2"],
+                    row[aa_label],
+                    fontsize=13,
+                    ha="center",
+                    va="center",
+                    zorder=2,
+                )
             )
-        )
 
     _ = ax.axhline(0, color="grey", linestyle="--", zorder=-1)
     _ = ax.axvline(0, color="grey", linestyle="--", zorder=-1)
@@ -120,12 +125,13 @@ def plot_position(
     )
 
     # Adjust text to avoid overlaps
-    _ = adjust_text(
-        texts,
-        arrowprops=dict(arrowstyle="->", color="grey"),
-        expand=(1.2, 1.4),
-        force_text=1.0,
-    )
+    if label:
+        _ = adjust_text(
+            texts,
+            arrowprops=dict(arrowstyle="->", color="grey"),
+            expand=(1.2, 1.4),
+            force_text=1.0,
+        )
 
     return ax
 
